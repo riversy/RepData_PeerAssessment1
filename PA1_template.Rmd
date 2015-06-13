@@ -2,24 +2,107 @@
 title: "Reproducible Research: Peer Assessment 1"
 output: 
   html_document:
-    keep_md: true
+    keep_md: false
 ---
 
+This work will try to answer the questions what asked [here][1] one the page of **Peer Assignment 1** of the **"Reproducible Research"** course on Coursera. In this document I will show how did I find answers for that questions. Let's go ヽ(\^ᴗ\^)丿
 
 ## Loading and preprocessing the data
 
+I will use the package with data what placed [here][2]. This data file was downloaded and placed inside the repository with work as file with name "*repdata-data-activity.zip*". Let's check if it exists and unzip it to extract the data. 
 
+```{r}
+unzip("repdata-data-activity.zip")
+```
+
+After that let's check if file with data was unpacked and load data into variable *activity*. File should has name "activity.csv" and i want to remove it after loading. 
+
+```{r results='hide'}
+activity = read.csv("activity.csv")
+file.remove("activity.csv")
+```
+
+Let's check what's inside the variable.
+
+```{r}
+str(activity)
+```
 
 ## What is mean total number of steps taken per day?
 
+Now I need to calculate total number of steps per day. I will use **dplyr** package for that. Let's group our data by *date* and summarise *steps* quantity. 
 
+```{r}
+library(dplyr, verbose=FALSE)
+per_day_steps <- select(activity, date, steps)
+per_day_steps <- group_by(per_day_steps, date)
+per_day_steps <- summarise(per_day_steps, steps = sum(steps))
+```
+
+I would also like to remove *NA*s from the dataset before plotting.
+
+```{r}
+per_day_steps <- per_day_steps[!is.na(per_day_steps$steps), ]
+```
+
+Let's have a look into processed data.
+
+```{r}
+head(per_day_steps)
+```
+
+I will build histogram of the total number of steps taken each day using **ggplot2** package.
+
+```{r}
+library(ggplot2)
+ggplot(per_day_steps, aes(x=steps)) + 
+  geom_histogram() + 
+  ggtitle("Total number of steps taken each day") + 
+  xlab("Days") +
+  ylab("Steps") 
+```
+
+Let's define mean and median of the total number of steps taken per day.
+
+```{r results='asis'}
+library(xtable)
+
+report <- 
+  data.frame(
+    c(mean(per_day_steps$steps, na.rm = TRUE)),
+    c(median(per_day_steps$steps, na.rm = TRUE))
+  )
+
+colnames(report) <- c("Mean", "Median")
+rownames(report) <- c("steps")
+
+print(xtable(report), type="html")
+```
 
 ## What is the average daily activity pattern?
 
+Firstly I will calculate data frame that will store mean of steps for each of intervals over all days using **dplyr** package. And after that I will plot the data using **ggplot2** package.
 
+```{r}
+activity_pattern <- select(activity, interval, steps) %>% 
+  group_by(interval) %>% 
+  summarise(steps = mean(steps, na.rm = TRUE))
+
+ggplot(activity_pattern, aes(x=interval, y=steps)) +
+  geom_line() +
+  ggtitle("Average daily activity pattern") + 
+  xlab("Steps") + 
+  ylab("Time")
+```
 
 ## Imputing missing values
 
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+
+
+
+[1]:https://class.coursera.org/repdata-015/human_grading/view/courses/973516/assessments/3/submissions
+[2]:https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip
