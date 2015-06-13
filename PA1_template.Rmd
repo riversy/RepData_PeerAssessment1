@@ -2,20 +2,20 @@
 title: "Reproducible Research: Peer Assessment 1"
 output: 
   html_document:
-    keep_md: false
+    keep_md: true
 ---
 
-This work will try to answer the questions what asked [here][1] one the page of **Peer Assignment 1** of the **"Reproducible Research"** course on Coursera. In this document I will show how did I find answers for that questions. Let's go ヽ(\^ᴗ\^)丿
+This work will try to answer the questions what asked [here][1] one the page of **Peer Assignment 1** of the **Reproducible Research** course on Coursera. In this document I will show how did I find answers for that questions. Let's go ヽ(\^ᴗ\^)丿
 
 ## Loading and preprocessing the data
 
-I will use the package with data what placed [here][2]. This data file was downloaded and placed inside the repository with work as file with name "*repdata-data-activity.zip*". Let's check if it exists and unzip it to extract the data. 
+I will use the package with data what placed [here][2]. This data file was downloaded and placed inside the repository with work as file with name "*repdata-data-activity.zip*". Let's just unzip it to extract the data. 
 
 ```{r}
 unzip("repdata-data-activity.zip")
 ```
 
-After that let's check if file with data was unpacked and load data into variable *activity*. File should has name "activity.csv" and i want to remove it after loading. 
+After that let's load data into variable *activity*. File should has name "activity.csv" and I want to remove it after loading. 
 
 ```{r results='hide'}
 activity = read.csv("activity.csv")
@@ -27,6 +27,8 @@ Let's check what's inside the variable.
 ```{r}
 str(activity)
 ```
+
+Looks good and I can continue.
 
 ## What is mean total number of steps taken per day?
 
@@ -51,7 +53,7 @@ ggplot(per_day_steps, aes(x=steps)) +
   ylab("Steps") 
 ```
 
-Let's define mean and median of the total number of steps taken per day.
+Let's define *mean* and *median* of the total number of steps taken per day.
 
 ```{r results='asis'}
 library(xtable)
@@ -70,7 +72,7 @@ print(xtable(report), type="html")
 
 ## What is the average daily activity pattern?
 
-Firstly I will calculate data frame that will store mean of steps for each of intervals over all days using **dplyr** package. And after that I will plot the data using **ggplot2** package.
+Firstly I will calculate data frame that will store *mean* of steps for each of intervals over all days using **dplyr** package. And after that I will plot the data using **ggplot2** package.
 
 ```{r}
 activity_pattern <- select(activity, interval, steps) %>% 
@@ -93,11 +95,9 @@ na_count <- select(activity, steps) %>% filter(is.na(steps)) %>% count()
 na_count[[1]]
 ```
 
-It looks like count of NA's is `r na_count[[1]]`. We need to fix missed values somehow. 
+It looks like count of *NA* values is `r na_count[[1]]`. I need to fix missed values somehow. I will use *median* for the interval throughout all other days because it should has more close value for the "real" interval's one. 
 
-I will use median for the interval throughout all other days that has the value for the interval. 
-
-First of all I will find medians of intervals to use it as source of values.
+To proceed that, I will find medians of intervals to use it as source of values.
 
 ```{r}
 medians_of_intervals <- select(activity, interval, steps) %>% 
@@ -106,11 +106,11 @@ medians_of_intervals <- select(activity, interval, steps) %>%
   head(medians_of_intervals)
 ```
 
-I will use the **apply()** with anonymous function to restore missed values in the cloned dataset. Let's do it. 
+After that, I will use the **apply()** with anonymous function to restore missed values in the cloned dataset. Let's do it. 
 
 ```{r}
-restored_activity <- activity
-restored_activity$steps <- as.numeric(
+fixed_activity <- activity
+fixed_activity$steps <- as.numeric(
   apply(activity, 1, function(x) { 
     
       steps_value = x[1]
@@ -132,21 +132,19 @@ restored_activity$steps <- as.numeric(
       steps
     })
 )
-str(restored_activity)
+str(fixed_activity)
 ```
   
-That's nice. There are no more *NA* in our dataset. 
-
-I will to recalculate total number of steps per day. But I will use fixed data this time.  
+That's nice. There are no more *NA* values in our dataset. And I will to recalculate total number of steps per day. But I will use fixed data this time.  
 
 ```{r}
-fixed_per_day_steps <- select(restored_activity, date, steps) %>%
+fixed_per_day_steps <- select(fixed_activity, date, steps) %>%
                   group_by(date) %>%
                   summarise(steps = sum(steps))
 head(fixed_per_day_steps)
 ```
 
-Now I will compare histograms of the total number of steps taken each day with and without *NA* values.
+Now I may compare histograms of the total number of steps taken each day with and without *NA* values.
 
 ```{r fig.height=5, fig.width=10}
 library(grid)
@@ -167,7 +165,7 @@ plot2 <- ggplot(fixed_per_day_steps, aes(x=steps)) +
 grid.arrange(plot1, plot2, ncol = 2)
 ```
 
-Means and Medians of these data also should be comapred.
+I would also like to compare **Means** and **Medians** of these data with and wothout *NA* values.
 
 ```{r results='asis'}
 report <- 
@@ -188,12 +186,50 @@ rownames(report) <- c("steps (with NA)", "steps (without NA)")
 print(xtable(report), type="html")
 ```
 
-
-It looks like average count of steps per day was reduced after we've imputted missing values. 
+It looks like average count of steps per day was reduced after we've imputted missed values. 
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
+I will add *day* factor column to *fixed_activity* dataset. It will contain marker "weekday" or "weekend" depends on date of a record. 
 
+```{r}
+fixed_activity$day <- as.factor(
+  apply(fixed_activity, 1, function(x) { 
+    
+    weekday <- strftime(as.Date(x[2]), format="%w")
+    if (weekday %in% c(0,6)){
+      day <- "weekend"
+    } else {
+      day <- "weekday"
+    }
+    
+    day
+  })
+)
+str(fixed_activity)
+```
+
+Now I should recreate activity pattern variable with *day* column and plot comparative chart for it.
+
+```{r, fig.width=8, fig.height=5}
+per_day_activity_pattern <- select(fixed_activity, interval, steps, day) %>% 
+  group_by(interval, day) %>% 
+  summarise(steps = mean(steps))
+
+ggplot(per_day_activity_pattern, aes(x=interval, y=steps)) +
+  geom_line() +
+  facet_wrap(~day, ncol = 1) +
+  ggtitle("Average daily activity pattern\nseparated by weekday/weekend") + 
+  xlab("Steps") + 
+  ylab("Time")
+
+```
+
+That's done ヽ(\^ᴗ\^)丿
+
+Thank you for reading.
+
+P.S. To replicate the work it would be useful to install **dplyr**, **ggplot2**, **xtable**, **grid** and **gridExtra** packages before.
 
 
 [1]:https://class.coursera.org/repdata-015/human_grading/view/courses/973516/assessments/3/submissions
