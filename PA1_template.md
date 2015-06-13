@@ -1,9 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 This work will try to answer the questions what asked [here][1] one the page of **Peer Assignment 1** of the **Reproducible Research** course on Coursera. In this document I will show how did I find answers for that questions. Let's go ヽ(\^ᴗ\^)丿
 
@@ -98,7 +93,7 @@ print(xtable(report), type="html")
 ```
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Sat Jun 13 20:13:09 2015 -->
+<!-- Sat Jun 13 21:52:55 2015 -->
 <table border=1>
 <tr> <th>  </th> <th> Mean </th> <th> Median </th>  </tr>
   <tr> <td align="right"> steps </td> <td align="right"> 10766.19 </td> <td align="right"> 10765 </td> </tr>
@@ -267,7 +262,7 @@ print(xtable(report), type="html")
 ```
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Sat Jun 13 20:13:11 2015 -->
+<!-- Sat Jun 13 21:52:57 2015 -->
 <table border=1>
 <tr> <th>  </th> <th> Mean </th> <th> Median </th>  </tr>
   <tr> <td align="right"> steps (with NA) </td> <td align="right"> 10766.19 </td> <td align="right"> 10765.00 </td> </tr>

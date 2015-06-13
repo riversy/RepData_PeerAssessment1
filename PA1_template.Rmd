@@ -1,9 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 This work will try to answer the questions what asked [here][1] one the page of **Peer Assignment 1** of the **Reproducible Research** course on Coursera. In this document I will show how did I find answers for that questions. Let's go ヽ(\^ᴗ\^)丿
 
