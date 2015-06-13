@@ -33,21 +33,10 @@ str(activity)
 Now I need to calculate total number of steps per day. I will use **dplyr** package for that. Let's group our data by *date* and summarise *steps* quantity. 
 
 ```{r}
-library(dplyr, verbose=FALSE)
+library(dplyr)
 per_day_steps <- select(activity, date, steps)
 per_day_steps <- group_by(per_day_steps, date)
 per_day_steps <- summarise(per_day_steps, steps = sum(steps))
-```
-
-I would also like to remove *NA*s from the dataset before plotting.
-
-```{r}
-per_day_steps <- per_day_steps[!is.na(per_day_steps$steps), ]
-```
-
-Let's have a look into processed data.
-
-```{r}
 head(per_day_steps)
 ```
 
@@ -97,7 +86,110 @@ ggplot(activity_pattern, aes(x=interval, y=steps)) +
 
 ## Imputing missing values
 
+Let't find the number of missed values in the original dataset. I will use **dplyr** package functions to find out these values.  
 
+```{r}
+na_count <- select(activity, steps) %>% filter(is.na(steps)) %>% count()
+na_count[[1]]
+```
+
+It looks like count of NA's is `r na_count[[1]]`. We need to fix missed values somehow. 
+
+I will use median for the interval throughout all other days that has the value for the interval. 
+
+First of all I will find medians of intervals to use it as source of values.
+
+```{r}
+medians_of_intervals <- select(activity, interval, steps) %>% 
+  group_by(interval) %>% 
+  summarise(steps = median(steps, na.rm = TRUE))
+  head(medians_of_intervals)
+```
+
+I will use the **apply()** with anonymous function to restore missed values in the cloned dataset. Let's do it. 
+
+```{r}
+restored_activity <- activity
+restored_activity$steps <- as.numeric(
+  apply(activity, 1, function(x) { 
+    
+      steps_value = x[1]
+      interval_value = x[3]
+      
+      if (is.na(steps_value)){
+   
+        # Find value of median for this interval
+        selected <- select(medians_of_intervals, steps, interval) %>% 
+                      filter(interval == as.integer(interval_value))
+      
+        steps <- selected[[1]]  
+        
+      } else {
+        
+        steps <- steps_value
+      }
+      
+      steps
+    })
+)
+str(restored_activity)
+```
+  
+That's nice. There are no more *NA* in our dataset. 
+
+I will to recalculate total number of steps per day. But I will use fixed data this time.  
+
+```{r}
+fixed_per_day_steps <- select(restored_activity, date, steps) %>%
+                  group_by(date) %>%
+                  summarise(steps = sum(steps))
+head(fixed_per_day_steps)
+```
+
+Now I will compare histograms of the total number of steps taken each day with and without *NA* values.
+
+```{r fig.height=5, fig.width=10}
+library(grid)
+library(gridExtra)
+
+plot1 <- ggplot(per_day_steps, aes(x=steps)) + 
+  geom_histogram() + 
+  ggtitle("Total number of steps taken each day\nwith NA values") + 
+  xlab("Days") +
+  ylab("Steps")
+
+plot2 <- ggplot(fixed_per_day_steps, aes(x=steps)) + 
+  geom_histogram() + 
+  ggtitle("Total number of steps taken each day\nafter NA values were removed") + 
+  xlab("Days") +
+  ylab("Steps") 
+
+grid.arrange(plot1, plot2, ncol = 2)
+```
+
+Means and Medians of these data also should be comapred.
+
+```{r results='asis'}
+report <- 
+  data.frame(
+    c(
+      mean(per_day_steps$steps, na.rm = TRUE), 
+      mean(fixed_per_day_steps$steps, na.rm = TRUE)
+    ),
+    c(
+      median(per_day_steps$steps, na.rm = TRUE),
+      median(fixed_per_day_steps$steps, na.rm = TRUE)
+    )
+  )
+
+colnames(report) <- c("Mean", "Median")
+rownames(report) <- c("steps (with NA)", "steps (without NA)")
+
+print(xtable(report), type="html")
+```
+
+
+It looks like average count of steps per day was reduced after we've imputted missing values. 
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
